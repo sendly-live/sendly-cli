@@ -1,5 +1,11 @@
 # @sendly/cli
 
+## 1.0.4
+
+### Patch Changes
+
+- chore: sync all SDK versions
+
 ## 1.0.2
 
 ### Patch Changes
