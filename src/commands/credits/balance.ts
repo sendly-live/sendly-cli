@@ -10,11 +10,12 @@ import {
 } from "../../lib/output.js";
 
 interface CreditsResponse {
-  balance: string;
-  reservedBalance: string;
+  balance: number;
+  reservedBalance: number;
+  availableBalance: number;
   recentTransactions?: Array<{
     id: string;
-    amount: string;
+    amount: number;
     type: string;
     description: string;
     createdAt: string;
@@ -45,9 +46,9 @@ export default class CreditsBalance extends AuthenticatedCommand {
 
     header("Credit Balance");
 
-    const balance = parseFloat(credits.balance) || 0;
-    const reserved = parseFloat(credits.reservedBalance) || 0;
-    const availableCredits = balance - reserved;
+    const balance = credits.balance;
+    const reserved = credits.reservedBalance;
+    const availableCredits = credits.availableBalance;
 
     keyValue({
       Available: colors.primary(`${availableCredits.toLocaleString()} credits`),
