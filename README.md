@@ -278,9 +278,8 @@ sendly credits balance --json | jq '.balance'
 ## Configuration Storage
 
 Configuration is stored in:
-- **macOS**: `~/.config/sendly/`
-- **Linux**: `~/.config/sendly/`
-- **Windows**: `%APPDATA%\sendly\`
+- **macOS/Linux**: `~/.sendly/config.json`
+- **Windows**: `%USERPROFILE%\.sendly\config.json`
 
 ## Webhook Signature Verification
 

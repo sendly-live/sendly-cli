@@ -3,7 +3,34 @@
  * Handles all HTTP requests to the Sendly API
  */
 
-import { getAuthToken, getConfigValue } from "./config.js";
+import { createRequire } from "node:module";
+import { getAuthToken, getConfigValue, getEffectiveValue } from "./config.js";
+
+// Read version from package.json
+const require = createRequire(import.meta.url);
+const { version } = require("../../package.json") as { version: string };
+
+/**
+ * Sleep for a given number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if an error is retryable (network errors or 5xx server errors)
+ */
+function isRetryableError(error: unknown): boolean {
+  // Network errors
+  if (error instanceof TypeError && error.message.includes("fetch")) {
+    return true;
+  }
+  // Server errors (5xx) are retryable
+  if (error instanceof ApiError && error.statusCode >= 500) {
+    return true;
+  }
+  return false;
+}
 
 export interface ApiResponse<T> {
   data?: T;
@@ -25,7 +52,7 @@ export class ApiError extends Error {
     public code: string,
     message: string,
     public statusCode: number,
-    public details?: Record<string, unknown>
+    public details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiError";
@@ -33,7 +60,9 @@ export class ApiError extends Error {
 }
 
 export class AuthenticationError extends ApiError {
-  constructor(message: string = "Not authenticated. Run 'sendly login' first.") {
+  constructor(
+    message: string = "Not authenticated. Run 'sendly login' first.",
+  ) {
     super("authentication_error", message, 401);
     this.name = "AuthenticationError";
   }
@@ -42,7 +71,7 @@ export class AuthenticationError extends ApiError {
 export class RateLimitError extends ApiError {
   constructor(
     public retryAfter: number,
-    message: string = "Rate limit exceeded"
+    message: string = "Rate limit exceeded",
   ) {
     super("rate_limit_exceeded", message, 429);
     this.name = "RateLimitError";
@@ -67,7 +96,7 @@ class ApiClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
-      "User-Agent": "@sendly/cli/1.0.0",
+      "User-Agent": `@sendly/cli/${version}`,
     };
 
     if (requireAuth) {
@@ -88,9 +117,11 @@ class ApiClient {
       body?: Record<string, unknown>;
       query?: Record<string, string | number | boolean | undefined>;
       requireAuth?: boolean;
-    } = {}
+    } = {},
   ): Promise<T> {
     const { body, query, requireAuth = true } = options;
+    const maxRetries = getEffectiveValue("maxRetries");
+    const timeout = getEffectiveValue("timeout");
 
     const url = new URL(`${this.getBaseUrl()}${path}`);
     if (query) {
@@ -101,23 +132,54 @@ class ApiClient {
       });
     }
 
-    const response = await fetch(url.toString(), {
-      method,
-      headers: this.getHeaders(requireAuth),
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let lastError: Error | undefined;
 
-    // Update rate limit info
-    this.updateRateLimitInfo(response.headers);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    // Parse response
-    const data = await response.json().catch(() => ({}));
+        const response = await fetch(url.toString(), {
+          method,
+          headers: this.getHeaders(requireAuth),
+          body: body ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
+        });
 
-    if (!response.ok) {
-      this.handleError(response.status, data);
+        clearTimeout(timeoutId);
+
+        // Update rate limit info
+        this.updateRateLimitInfo(response.headers);
+
+        // Parse response
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          this.handleError(response.status, data);
+        }
+
+        return data as T;
+      } catch (error) {
+        lastError = error as Error;
+
+        // Don't retry non-retryable errors (4xx client errors)
+        if (!isRetryableError(error)) {
+          throw error;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s, etc.
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+        await sleep(backoffMs);
+      }
     }
 
-    return data as T;
+    // Should never reach here, but TypeScript needs this
+    throw lastError || new Error("Request failed");
   }
 
   private updateRateLimitInfo(headers: Headers): void {
@@ -161,7 +223,7 @@ class ApiClient {
   async get<T>(
     path: string,
     query?: Record<string, string | number | boolean | undefined>,
-    requireAuth: boolean = true
+    requireAuth: boolean = true,
   ): Promise<T> {
     return this.request<T>("GET", path, { query, requireAuth });
   }
@@ -169,7 +231,7 @@ class ApiClient {
   async post<T>(
     path: string,
     body?: Record<string, unknown>,
-    requireAuth: boolean = true
+    requireAuth: boolean = true,
   ): Promise<T> {
     return this.request<T>("POST", path, { body, requireAuth });
   }
@@ -177,7 +239,7 @@ class ApiClient {
   async patch<T>(
     path: string,
     body?: Record<string, unknown>,
-    requireAuth: boolean = true
+    requireAuth: boolean = true,
   ): Promise<T> {
     return this.request<T>("PATCH", path, { body, requireAuth });
   }
