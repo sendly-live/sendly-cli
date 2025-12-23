@@ -130,6 +130,15 @@ export async function browserLogin(): Promise<TokenResponse> {
           tokens.email,
         );
 
+        // Check if new user needs quick-start (only for CLI sessions)
+        if (tokens.accessToken.startsWith("cli_")) {
+          const { shouldOfferQuickStart, offerQuickStart } = await import("./onboarding.js");
+          
+          if (await shouldOfferQuickStart()) {
+            await offerQuickStart();
+          }
+        }
+
         return tokens;
       }
 
