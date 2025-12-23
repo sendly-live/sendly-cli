@@ -11,11 +11,14 @@ import {
   isJsonMode,
 } from "../../lib/output.js";
 
+type WebhookMode = "all" | "test" | "live";
+
 interface Webhook {
   id: string;
   url: string;
   events: string[];
   description?: string;
+  mode: WebhookMode;
   is_active: boolean;
   failure_count: number;
   circuit_state: "closed" | "open" | "half_open";
@@ -56,10 +59,17 @@ export default class WebhooksGet extends AuthenticatedCommand {
     header(`Webhook ${webhook.id}`);
     console.log();
 
+    const modeDisplay = {
+      all: colors.dim("all"),
+      test: colors.warning("test"),
+      live: colors.success("live"),
+    };
+
     keyValue({
       ID: webhook.id,
       URL: webhook.url,
       Events: webhook.events.join(", "),
+      Mode: modeDisplay[webhook.mode] || webhook.mode || colors.dim("all"),
       ...(webhook.description ? { Description: webhook.description } : {}),
       Status: webhook.is_active
         ? colors.success("active")

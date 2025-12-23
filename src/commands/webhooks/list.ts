@@ -9,11 +9,14 @@ import {
   isJsonMode,
 } from "../../lib/output.js";
 
+type WebhookMode = "all" | "test" | "live";
+
 interface Webhook {
   id: string;
   url: string;
   description?: string;
   events: string[];
+  mode: WebhookMode;
   is_active: boolean;
   failure_count: number;
   circuit_state: "closed" | "open" | "half_open";
@@ -62,21 +65,36 @@ export default class WebhooksList extends AuthenticatedCommand {
       {
         header: "URL",
         key: "url",
-        width: 35,
+        width: 30,
         formatter: (v) => {
           const url = String(v);
-          return url.length > 32 ? url.slice(0, 32) + "..." : url;
+          return url.length > 27 ? url.slice(0, 27) + "..." : url;
         },
       },
       {
         header: "Events",
         key: "events",
-        width: 15,
+        width: 12,
         formatter: (v) => {
           const events = v as string[];
           return events.length > 2
             ? `${events.length} events`
             : events.join(", ").replace(/message\./g, "");
+        },
+      },
+      {
+        header: "Mode",
+        key: "mode",
+        width: 6,
+        formatter: (v) => {
+          switch (v) {
+            case "test":
+              return colors.warning("test");
+            case "live":
+              return colors.success("live");
+            default:
+              return colors.dim("all");
+          }
         },
       },
       {

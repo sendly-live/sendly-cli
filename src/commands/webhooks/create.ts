@@ -10,11 +10,14 @@ import {
   isJsonMode,
 } from "../../lib/output.js";
 
+type WebhookMode = "all" | "test" | "live";
+
 interface CreateWebhookResponse {
   id: string;
   url: string;
   events: string[];
   description?: string;
+  mode: WebhookMode;
   secret: string; // Only returned on creation
   secret_version: number;
   is_active: boolean;
@@ -46,6 +49,13 @@ export default class WebhooksCreate extends AuthenticatedCommand {
       char: "d",
       description: "Description for the webhook",
     }),
+    mode: Flags.string({
+      char: "m",
+      description:
+        "Event mode filter: all (default), test (sandbox only), live (production only)",
+      options: ["all", "test", "live"],
+      default: "all",
+    }),
   };
 
   async run(): Promise<void> {
@@ -58,6 +68,7 @@ export default class WebhooksCreate extends AuthenticatedCommand {
       {
         url: flags.url,
         events,
+        mode: flags.mode,
         ...(flags.description && { description: flags.description }),
       },
     );
@@ -67,10 +78,17 @@ export default class WebhooksCreate extends AuthenticatedCommand {
       return;
     }
 
+    const modeDisplay = {
+      all: colors.dim("all"),
+      test: colors.warning("test"),
+      live: colors.success("live"),
+    };
+
     success("Webhook created", {
       ID: response.id,
       URL: response.url,
       Events: response.events.join(", "),
+      Mode: modeDisplay[response.mode] || response.mode,
       ...(response.description && { Description: response.description }),
       Status: response.is_active
         ? colors.success("active")
