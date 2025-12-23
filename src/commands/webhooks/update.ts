@@ -3,11 +3,14 @@ import { AuthenticatedCommand } from "../../lib/base-command.js";
 import { apiClient } from "../../lib/api-client.js";
 import { success, error, json, colors, isJsonMode } from "../../lib/output.js";
 
+type WebhookMode = "all" | "test" | "live";
+
 interface UpdateWebhookResponse {
   id: string;
   url: string;
   events: string[];
   description?: string;
+  mode: WebhookMode;
   is_active: boolean;
   updated_at: string;
 }
@@ -49,6 +52,12 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
       description: "Enable or disable the webhook",
       allowNo: true,
     }),
+    mode: Flags.string({
+      char: "m",
+      description:
+        "Update event mode filter: all, test (sandbox only), live (production only)",
+      options: ["all", "test", "live"],
+    }),
   };
 
   async run(): Promise<void> {
@@ -59,12 +68,13 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
       flags.url ||
       flags.events ||
       flags.description ||
-      flags.active !== undefined
+      flags.active !== undefined ||
+      flags.mode
     );
 
     if (!hasUpdates) {
       error(
-        "No updates specified. Use --url, --events, --description, or --active flags.",
+        "No updates specified. Use --url, --events, --description, --active, or --mode flags.",
       );
       this.exit(1);
     }
@@ -88,6 +98,10 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
       updateData.is_active = flags.active;
     }
 
+    if (flags.mode) {
+      updateData.mode = flags.mode;
+    }
+
     try {
       const webhook = await apiClient.patch<UpdateWebhookResponse>(
         `/api/v1/webhooks/${args.id}`,
@@ -99,10 +113,17 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
         return;
       }
 
+      const modeDisplay = {
+        all: colors.dim("all"),
+        test: colors.warning("test"),
+        live: colors.success("live"),
+      };
+
       success("Webhook updated", {
         ID: webhook.id,
         URL: webhook.url,
         Events: webhook.events.join(", "),
+        Mode: modeDisplay[webhook.mode] || webhook.mode,
         ...(webhook.description && { Description: webhook.description }),
         Status: webhook.is_active
           ? colors.success("active")
@@ -115,6 +136,7 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
       console.log(colors.dim("Updated fields:"));
       if (flags.url) console.log(colors.dim("  • URL"));
       if (flags.events) console.log(colors.dim("  • Events"));
+      if (flags.mode) console.log(colors.dim("  • Mode"));
       if (flags.description !== undefined)
         console.log(colors.dim("  • Description"));
       if (flags.active !== undefined)
