@@ -51,7 +51,7 @@ export default class SmsGet extends AuthenticatedCommand {
     const { args } = await this.parse(SmsGet);
 
     const message = await apiClient.get<Message>(
-      `/api/v1/messages/${encodeURIComponent(args.id)}`
+      `/api/v1/messages/${encodeURIComponent(args.id)}`,
     );
 
     if (isJsonMode()) {
@@ -66,10 +66,12 @@ export default class SmsGet extends AuthenticatedCommand {
       To: formatPhone(message.to),
       From: message.from || colors.dim("(default)"),
       Status: formatStatus(message.status),
-      Segments: message.segments,
-      Credits: formatCredits(message.creditsUsed),
+      Segments: message.segments ?? 1,
+      Credits: formatCredits(message.creditsUsed ?? 0),
       Sandbox: message.isSandbox ? colors.warning("Yes") : "No",
-      Created: formatDate(message.createdAt),
+      Created: message.createdAt
+        ? formatDate(message.createdAt)
+        : colors.dim("Unknown"),
       ...(message.deliveredAt && {
         Delivered: formatDate(message.deliveredAt),
       }),
