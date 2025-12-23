@@ -53,20 +53,18 @@ export default class KeysRevoke extends AuthenticatedCommand {
       }
     }
 
-    // Find the key by keyId to get its internal id
-    const keys = await apiClient.get<Array<{ id: string; keyId: string }>>(
-      "/api/keys"
-    );
-    const key = keys.find((k) => k.keyId === args.keyId);
-
-    if (!key) {
-      error(`Key not found: ${args.keyId}`);
-      this.exit(1);
+    // Revoke the key directly by ID
+    try {
+      await apiClient.patch(`/api/v1/account/keys/${args.keyId}/revoke`, {
+        reason: flags.reason || "Revoked via CLI",
+      });
+    } catch (err: any) {
+      if (err.message?.includes("not_found") || err.message?.includes("404")) {
+        error(`Key not found: ${args.keyId}`);
+        this.exit(1);
+      }
+      throw err;
     }
-
-    await apiClient.patch(`/api/keys/${key.id}/revoke`, {
-      reason: flags.reason || "Revoked via CLI",
-    });
 
     if (isJsonMode()) {
       json({ success: true, keyId: args.keyId, revoked: true });

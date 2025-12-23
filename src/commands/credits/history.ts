@@ -13,10 +13,10 @@ import {
 interface Transaction {
   id: string;
   amount: number;
-  balanceAfter: number;
+  balance_after: number;
   type: "purchase" | "usage" | "bonus" | "refund";
   description: string;
-  createdAt: string;
+  created_at: string;
 }
 
 interface TransactionsResponse {
@@ -45,8 +45,8 @@ export default class CreditsHistory extends AuthenticatedCommand {
     const { flags } = await this.parse(CreditsHistory);
 
     const response = await apiClient.get<TransactionsResponse>(
-      "/api/credits/transactions",
-      { limit: flags.limit }
+      "/api/v1/credits/transactions",
+      { limit: flags.limit },
     );
 
     if (isJsonMode()) {
@@ -95,7 +95,7 @@ export default class CreditsHistory extends AuthenticatedCommand {
       },
       {
         header: "Balance",
-        key: "balanceAfter",
+        key: "balance_after",
         width: 12,
         formatter: (v) => `${(v as number).toLocaleString()}`,
       },
@@ -110,7 +110,7 @@ export default class CreditsHistory extends AuthenticatedCommand {
       },
       {
         header: "When",
-        key: "createdAt",
+        key: "created_at",
         width: 12,
         formatter: (v) => formatRelativeTime(String(v)),
       },

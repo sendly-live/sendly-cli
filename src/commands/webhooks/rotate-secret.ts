@@ -14,10 +14,10 @@ import inquirer from "inquirer";
 
 interface RotateSecretResponse {
   id: string;
-  newSecret: string;
-  newSecretVersion: number;
-  gracePeriodHours: number;
-  rotatedAt: string;
+  new_secret: string;
+  new_secret_version: number;
+  grace_period_hours: number;
+  rotated_at: string;
 }
 
 export default class WebhooksRotateSecret extends AuthenticatedCommand {
@@ -51,9 +51,11 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
     // Get webhook details for confirmation
     let webhook;
     try {
-      webhook = await apiClient.get<{ id: string; url: string; secretVersion: number }>(
-        `/api/v1/webhooks/${args.id}`
-      );
+      webhook = await apiClient.get<{
+        id: string;
+        url: string;
+        secret_version: number;
+      }>(`/api/v1/webhooks/${args.id}`);
     } catch (err) {
       error(`Webhook not found: ${args.id}`);
       this.exit(1);
@@ -62,8 +64,14 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
     // Confirm rotation
     if (!flags.yes && !isJsonMode()) {
       console.log();
-      console.log(colors.warning("⚠ This will rotate the webhook secret and invalidate the old one after 24 hours."));
-      console.log(colors.dim("Make sure to update your application with the new secret."));
+      console.log(
+        colors.warning(
+          "⚠ This will rotate the webhook secret and invalidate the old one after 24 hours.",
+        ),
+      );
+      console.log(
+        colors.dim("Make sure to update your application with the new secret."),
+      );
       console.log();
 
       const { confirm } = await inquirer.prompt([
@@ -83,7 +91,7 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
 
     try {
       const result = await apiClient.post<RotateSecretResponse>(
-        `/api/v1/webhooks/${args.id}/rotate-secret`
+        `/api/v1/webhooks/${args.id}/rotate-secret`,
       );
 
       if (isJsonMode()) {
@@ -93,19 +101,28 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
 
       success("Webhook secret rotated", {
         "Webhook ID": result.id,
-        "Secret Version": `${webhook.secretVersion} → ${result.newSecretVersion}`,
-        "Grace Period": `${result.gracePeriodHours} hours`,
-        "Rotated At": result.rotatedAt,
+        "Secret Version": `${webhook.secret_version} → ${result.new_secret_version}`,
+        "Grace Period": `${result.grace_period_hours} hours`,
+        "Rotated At": result.rotated_at,
       });
 
       console.log();
-      warn("Copy your new webhook secret now. The old secret will expire in 24 hours!");
-      codeBlock(result.newSecret);
+      warn(
+        "Copy your new webhook secret now. The old secret will expire in 24 hours!",
+      );
+      codeBlock(result.new_secret);
 
       console.log();
-      console.log(colors.dim("Update your application with this new secret for webhook signature verification."));
-      console.log(colors.dim(`The old secret will remain valid for ${result.gracePeriodHours} hours to allow for graceful migration.`));
-
+      console.log(
+        colors.dim(
+          "Update your application with this new secret for webhook signature verification.",
+        ),
+      );
+      console.log(
+        colors.dim(
+          `The old secret will remain valid for ${result.grace_period_hours} hours to allow for graceful migration.`,
+        ),
+      );
     } catch (err) {
       if (err instanceof Error) {
         error(`Failed to rotate secret: ${err.message}`);

@@ -39,22 +39,27 @@ export default class Whoami extends BaseCommand {
     success("Authenticated");
     console.log();
 
-    const displayData: Record<string, string> = {
-      Environment: colors.primary(authInfo.environment),
-    };
+    const displayData: Record<string, string> = {};
+
+    // Show API mode (test vs live) - this determines if messages are actually sent
+    const mode = authInfo.keyType || authInfo.environment;
+    displayData["API Mode"] =
+      mode === "test"
+        ? colors.warning("test") + colors.dim(" (sandbox - no real messages)")
+        : colors.success("live") + colors.dim(" (production)");
 
     if (authInfo.email) {
       displayData["Email"] = authInfo.email;
     }
 
-    if (authInfo.keyType) {
-      displayData["Key Type"] = authInfo.keyType === "test"
-        ? colors.warning("test")
-        : colors.success("live");
-    }
-
     if (authInfo.userId) {
       displayData["User ID"] = colors.dim(authInfo.userId);
+    }
+
+    // Show which server we're connected to
+    const baseUrl = getConfigValue("baseUrl");
+    if (baseUrl && baseUrl !== "https://sendly.live") {
+      displayData["Server"] = colors.dim(baseUrl);
     }
 
     displayData["Config"] = colors.dim(getConfigPath());

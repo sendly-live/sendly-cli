@@ -16,18 +16,18 @@ interface CreateWebhookResponse {
   events: string[];
   description?: string;
   secret: string; // Only returned on creation
-  secretVersion: number;
-  isActive: boolean;
-  createdAt: string;
+  secret_version: number;
+  is_active: boolean;
+  created_at: string;
 }
 
 export default class WebhooksCreate extends AuthenticatedCommand {
   static description = "Create a webhook";
 
   static examples = [
-    '<%= config.bin %> webhooks create --url https://myapp.com/webhook --events message.delivered',
+    "<%= config.bin %> webhooks create --url https://myapp.com/webhook --events message.delivered",
     '<%= config.bin %> webhooks create --url https://myapp.com/webhook --events message.delivered,message.failed --description "Production webhook"',
-    '<%= config.bin %> webhooks create --url https://webhook.site/abc123 --events message.sent --json',
+    "<%= config.bin %> webhooks create --url https://webhook.site/abc123 --events message.sent --json",
   ];
 
   static flags = {
@@ -51,13 +51,16 @@ export default class WebhooksCreate extends AuthenticatedCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(WebhooksCreate);
 
-    const events = flags.events.split(",").map(e => e.trim());
+    const events = flags.events.split(",").map((e) => e.trim());
 
-    const response = await apiClient.post<CreateWebhookResponse>("/api/v1/webhooks", {
-      url: flags.url,
-      events,
-      ...(flags.description && { description: flags.description }),
-    });
+    const response = await apiClient.post<CreateWebhookResponse>(
+      "/api/v1/webhooks",
+      {
+        url: flags.url,
+        events,
+        ...(flags.description && { description: flags.description }),
+      },
+    );
 
     if (isJsonMode()) {
       json(response);
@@ -69,7 +72,9 @@ export default class WebhooksCreate extends AuthenticatedCommand {
       URL: response.url,
       Events: response.events.join(", "),
       ...(response.description && { Description: response.description }),
-      Status: response.isActive ? colors.success("active") : colors.warning("inactive"),
+      Status: response.is_active
+        ? colors.success("active")
+        : colors.warning("inactive"),
     });
 
     console.log();
@@ -77,7 +82,13 @@ export default class WebhooksCreate extends AuthenticatedCommand {
     codeBlock(response.secret);
 
     console.log();
-    console.log(colors.dim("Use this secret to verify webhook signatures in your application."));
-    console.log(colors.dim("See the docs for signature verification examples."));
+    console.log(
+      colors.dim(
+        "Use this secret to verify webhook signatures in your application.",
+      ),
+    );
+    console.log(
+      colors.dim("See the docs for signature verification examples."),
+    );
   }
 }

@@ -14,10 +14,10 @@ interface Webhook {
   url: string;
   description?: string;
   events: string[];
-  isActive: boolean;
-  failureCount: number;
-  circuitState: "closed" | "open" | "half_open";
-  createdAt: string;
+  is_active: boolean;
+  failure_count: number;
+  circuit_state: "closed" | "open" | "half_open";
+  created_at: string;
 }
 
 export default class WebhooksList extends AuthenticatedCommand {
@@ -81,14 +81,14 @@ export default class WebhooksList extends AuthenticatedCommand {
       },
       {
         header: "Status",
-        key: "isActive",
+        key: "is_active",
         width: 10,
         formatter: (v) =>
           v ? colors.success("active") : colors.error("disabled"),
       },
       {
         header: "Circuit",
-        key: "circuitState",
+        key: "circuit_state",
         width: 10,
         formatter: (v) => {
           switch (v) {

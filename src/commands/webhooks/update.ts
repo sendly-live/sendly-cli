@@ -1,32 +1,26 @@
 import { Args, Flags } from "@oclif/core";
 import { AuthenticatedCommand } from "../../lib/base-command.js";
 import { apiClient } from "../../lib/api-client.js";
-import {
-  success,
-  error,
-  json,
-  colors,
-  isJsonMode,
-} from "../../lib/output.js";
+import { success, error, json, colors, isJsonMode } from "../../lib/output.js";
 
 interface UpdateWebhookResponse {
   id: string;
   url: string;
   events: string[];
   description?: string;
-  isActive: boolean;
-  updatedAt: string;
+  is_active: boolean;
+  updated_at: string;
 }
 
 export default class WebhooksUpdate extends AuthenticatedCommand {
   static description = "Update a webhook";
 
   static examples = [
-    '<%= config.bin %> webhooks update whk_abc123 --url https://newdomain.com/webhook',
-    '<%= config.bin %> webhooks update whk_abc123 --events message.delivered,message.failed',
+    "<%= config.bin %> webhooks update whk_abc123 --url https://newdomain.com/webhook",
+    "<%= config.bin %> webhooks update whk_abc123 --events message.delivered,message.failed",
     '<%= config.bin %> webhooks update whk_abc123 --description "Updated production webhook"',
-    '<%= config.bin %> webhooks update whk_abc123 --active false',
-    '<%= config.bin %> webhooks update whk_abc123 --url https://newdomain.com/webhook --events message.sent --json',
+    "<%= config.bin %> webhooks update whk_abc123 --active false",
+    "<%= config.bin %> webhooks update whk_abc123 --url https://newdomain.com/webhook --events message.sent --json",
   ];
 
   static args = {
@@ -61,36 +55,43 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
     const { args, flags } = await this.parse(WebhooksUpdate);
 
     // Check if any update flags were provided
-    const hasUpdates = !!(flags.url || flags.events || flags.description || flags.active !== undefined);
-    
+    const hasUpdates = !!(
+      flags.url ||
+      flags.events ||
+      flags.description ||
+      flags.active !== undefined
+    );
+
     if (!hasUpdates) {
-      error("No updates specified. Use --url, --events, --description, or --active flags.");
+      error(
+        "No updates specified. Use --url, --events, --description, or --active flags.",
+      );
       this.exit(1);
     }
 
     // Build update payload
     const updateData: any = {};
-    
+
     if (flags.url) {
       updateData.url = flags.url;
     }
-    
+
     if (flags.events) {
-      updateData.events = flags.events.split(",").map(e => e.trim());
+      updateData.events = flags.events.split(",").map((e) => e.trim());
     }
-    
+
     if (flags.description !== undefined) {
       updateData.description = flags.description;
     }
-    
+
     if (flags.active !== undefined) {
-      updateData.isActive = flags.active;
+      updateData.is_active = flags.active;
     }
 
     try {
       const webhook = await apiClient.patch<UpdateWebhookResponse>(
         `/api/v1/webhooks/${args.id}`,
-        updateData
+        updateData,
       );
 
       if (isJsonMode()) {
@@ -103,8 +104,10 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
         URL: webhook.url,
         Events: webhook.events.join(", "),
         ...(webhook.description && { Description: webhook.description }),
-        Status: webhook.isActive ? colors.success("active") : colors.warning("inactive"),
-        "Updated At": webhook.updatedAt,
+        Status: webhook.is_active
+          ? colors.success("active")
+          : colors.warning("inactive"),
+        "Updated At": webhook.updated_at,
       });
 
       // Show what changed
@@ -112,9 +115,10 @@ export default class WebhooksUpdate extends AuthenticatedCommand {
       console.log(colors.dim("Updated fields:"));
       if (flags.url) console.log(colors.dim("  • URL"));
       if (flags.events) console.log(colors.dim("  • Events"));
-      if (flags.description !== undefined) console.log(colors.dim("  • Description"));
-      if (flags.active !== undefined) console.log(colors.dim("  • Active status"));
-
+      if (flags.description !== undefined)
+        console.log(colors.dim("  • Description"));
+      if (flags.active !== undefined)
+        console.log(colors.dim("  • Active status"));
     } catch (err) {
       if (err instanceof Error && err.message.includes("404")) {
         error(`Webhook not found: ${args.id}`);

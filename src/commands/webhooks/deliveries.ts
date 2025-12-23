@@ -12,17 +12,17 @@ import {
 
 interface WebhookDelivery {
   id: string;
-  eventType: string;
-  attemptNumber: number;
-  maxAttempts: number;
+  event_type: string;
+  attempt_number: number;
+  max_attempts: number;
   status: "pending" | "delivered" | "failed" | "cancelled";
-  responseStatusCode?: number;
-  responseTime?: number;
-  errorMessage?: string;
-  errorCode?: string;
-  nextRetryAt?: string;
-  createdAt: string;
-  deliveredAt?: string;
+  response_status_code?: number;
+  response_time?: number;
+  error_message?: string;
+  error_code?: string;
+  next_retry_at?: string;
+  created_at: string;
+  delivered_at?: string;
 }
 
 export default class WebhooksDeliveries extends AuthenticatedCommand {
@@ -64,7 +64,7 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
     });
 
     const deliveries = await apiClient.get<WebhookDelivery[]>(
-      `/api/v1/webhooks/${args.id}/deliveries?${params.toString()}`
+      `/api/v1/webhooks/${args.id}/deliveries?${params.toString()}`,
     );
 
     if (isJsonMode()) {
@@ -73,18 +73,26 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
     }
 
     if (deliveries.length === 0) {
-      info(flags["failed-only"] ? "No failed deliveries found" : "No deliveries found");
+      info(
+        flags["failed-only"]
+          ? "No failed deliveries found"
+          : "No deliveries found",
+      );
       return;
     }
 
     console.log();
-    console.log(colors.dim(`Showing ${deliveries.length} deliveries for webhook ${args.id}`));
+    console.log(
+      colors.dim(
+        `Showing ${deliveries.length} deliveries for webhook ${args.id}`,
+      ),
+    );
     console.log();
 
     // Add computed fields for better display
-    const deliveriesWithComputed = deliveries.map(d => ({
+    const deliveriesWithComputed = deliveries.map((d) => ({
       ...d,
-      attemptDisplay: `${d.attemptNumber}/${d.maxAttempts}`,
+      attemptDisplay: `${d.attempt_number}/${d.max_attempts}`,
     }));
 
     table(deliveriesWithComputed, [
@@ -96,7 +104,7 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
       },
       {
         header: "Event",
-        key: "eventType",
+        key: "event_type",
         width: 15,
         formatter: (v) => String(v).replace("message.", ""),
       },
@@ -126,47 +134,57 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
       },
       {
         header: "Status Code",
-        key: "responseStatusCode",
+        key: "response_status_code",
         width: 12,
         formatter: (v) => {
           if (!v) return colors.dim("-");
           const code = Number(v);
-          return code >= 200 && code < 300 
+          return code >= 200 && code < 300
             ? colors.success(String(code))
             : colors.error(String(code));
         },
       },
       {
         header: "Response Time",
-        key: "responseTime",
+        key: "response_time",
         width: 14,
-        formatter: (v) => v ? `${v}ms` : colors.dim("-"),
+        formatter: (v) => (v ? `${v}ms` : colors.dim("-")),
       },
       {
         header: "Created",
-        key: "createdAt",
+        key: "created_at",
         width: 16,
         formatter: (v) => formatDate(String(v)),
       },
     ]);
 
     // Show failed delivery details
-    const failed = deliveries.filter(d => d.status === "failed" && d.errorMessage);
+    const failed = deliveries.filter(
+      (d) => d.status === "failed" && d.error_message,
+    );
     if (failed.length > 0 && !flags["failed-only"]) {
       console.log();
       console.log(colors.error("Failed deliveries:"));
-      failed.forEach(delivery => {
-        console.log(colors.dim(`  ${delivery.id.slice(0, 15)}...:`), delivery.errorMessage || "Unknown error");
+      failed.forEach((delivery) => {
+        console.log(
+          colors.dim(`  ${delivery.id.slice(0, 15)}...:`),
+          delivery.error_message || "Unknown error",
+        );
       });
     }
 
     // Show pending retries
-    const pending = deliveries.filter(d => d.status === "pending" && d.nextRetryAt);
+    const pending = deliveries.filter(
+      (d) => d.status === "pending" && d.next_retry_at,
+    );
     if (pending.length > 0) {
       console.log();
       console.log(colors.warning("Pending retries:"));
-      pending.forEach(delivery => {
-        console.log(colors.dim(`  ${delivery.id.slice(0, 15)}...:`), `Next retry at ${formatDate(delivery.nextRetryAt!)}`);
+      pending.forEach((delivery) => {
+        console.log(
+          colors.dim(`  ${delivery.id.slice(0, 15)}...:`),
+          `Next retry at ${formatDate(delivery.next_retry_at!)}`,
+        );
       });
     }
   }

@@ -16,12 +16,12 @@ interface Webhook {
   url: string;
   events: string[];
   description?: string;
-  isActive: boolean;
-  failureCount: number;
-  circuitState: "closed" | "open" | "half_open";
-  secretVersion: number;
-  createdAt: string;
-  updatedAt: string;
+  is_active: boolean;
+  failure_count: number;
+  circuit_state: "closed" | "open" | "half_open";
+  secret_version: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export default class WebhooksGet extends AuthenticatedCommand {
@@ -57,32 +57,48 @@ export default class WebhooksGet extends AuthenticatedCommand {
     console.log();
 
     keyValue({
-      "ID": webhook.id,
-      "URL": webhook.url,
-      "Events": webhook.events.join(", "),
-      ...(webhook.description ? { "Description": webhook.description } : {}),
-      "Status": webhook.isActive ? colors.success("active") : colors.warning("inactive"),
-      "Circuit State": webhook.circuitState === "closed" 
-        ? colors.success("closed")
-        : webhook.circuitState === "open" 
-          ? colors.error("open")
-          : colors.warning("half_open"),
-      "Failure Count": String(webhook.failureCount),
-      "Secret Version": String(webhook.secretVersion),
-      "Created": formatDate(webhook.createdAt),
-      "Updated": formatDate(webhook.updatedAt),
+      ID: webhook.id,
+      URL: webhook.url,
+      Events: webhook.events.join(", "),
+      ...(webhook.description ? { Description: webhook.description } : {}),
+      Status: webhook.is_active
+        ? colors.success("active")
+        : colors.warning("inactive"),
+      "Circuit State":
+        webhook.circuit_state === "closed"
+          ? colors.success("closed")
+          : webhook.circuit_state === "open"
+            ? colors.error("open")
+            : colors.warning("half_open"),
+      "Failure Count": String(webhook.failure_count),
+      "Secret Version": String(webhook.secret_version),
+      Created: formatDate(webhook.created_at),
+      Updated: formatDate(webhook.updated_at),
     });
 
-    if (webhook.failureCount > 0) {
+    if (webhook.failure_count > 0) {
       console.log();
-      console.log(colors.warning(`⚠ This webhook has failed ${webhook.failureCount} times recently.`));
-      console.log(colors.dim("Check delivery history with:"), colors.code(`sendly webhooks deliveries ${webhook.id}`));
+      console.log(
+        colors.warning(
+          `⚠ This webhook has failed ${webhook.failure_count} times recently.`,
+        ),
+      );
+      console.log(
+        colors.dim("Check delivery history with:"),
+        colors.code(`sendly webhooks deliveries ${webhook.id}`),
+      );
     }
 
-    if (webhook.circuitState === "open") {
+    if (webhook.circuit_state === "open") {
       console.log();
-      console.log(colors.error("⚠ Circuit breaker is OPEN - webhook deliveries are paused."));
-      console.log(colors.dim("Test your endpoint and the circuit will auto-recover."));
+      console.log(
+        colors.error(
+          "⚠ Circuit breaker is OPEN - webhook deliveries are paused.",
+        ),
+      );
+      console.log(
+        colors.dim("Test your endpoint and the circuit will auto-recover."),
+      );
     }
   }
 }

@@ -12,7 +12,6 @@ import {
 
 interface CreateKeyResponse {
   id: string;
-  keyId: string;
   name: string;
   key: string; // Only returned on creation
   keyPrefix: string;
@@ -47,10 +46,13 @@ export default class KeysCreate extends AuthenticatedCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(KeysCreate);
 
-    const response = await apiClient.post<CreateKeyResponse>("/api/keys", {
-      name: flags.name,
-      type: flags.type,
-    });
+    const response = await apiClient.post<CreateKeyResponse>(
+      "/api/v1/account/keys",
+      {
+        name: flags.name,
+        type: flags.type,
+      },
+    );
 
     if (isJsonMode()) {
       json(response);
@@ -59,14 +61,19 @@ export default class KeysCreate extends AuthenticatedCommand {
 
     success("API key created", {
       Name: response.name,
-      "Key ID": response.keyId,
-      Type: flags.type === "test" ? colors.warning("test") : colors.success("live"),
+      "Key ID": response.id,
+      Type:
+        flags.type === "test" ? colors.warning("test") : colors.success("live"),
     });
 
     console.log();
     warn("Copy your API key now. You won't be able to see it again!");
     codeBlock(response.key);
 
-    console.log(colors.dim("Store this key securely. It provides access to your Sendly account."));
+    console.log(
+      colors.dim(
+        "Store this key securely. It provides access to your Sendly account.",
+      ),
+    );
   }
 }
