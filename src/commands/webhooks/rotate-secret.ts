@@ -13,11 +13,14 @@ import {
 import inquirer from "inquirer";
 
 interface RotateSecretResponse {
-  id: string;
-  new_secret: string;
-  new_secret_version: number;
-  grace_period_hours: number;
-  rotated_at: string;
+  success?: boolean;
+  id?: string;
+  secret?: string;
+  new_secret?: string;
+  new_secret_version?: number;
+  grace_period_hours?: number;
+  rotated_at?: string;
+  message?: string;
 }
 
 export default class WebhooksRotateSecret extends AuthenticatedCommand {
@@ -99,18 +102,21 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
         return;
       }
 
+      const secretValue = result.new_secret || result.secret || "";
+      const gracePeriod = result.grace_period_hours || 24;
+
       success("Webhook secret rotated", {
-        "Webhook ID": result.id,
-        "Secret Version": `${webhook.secret_version} → ${result.new_secret_version}`,
-        "Grace Period": `${result.grace_period_hours} hours`,
-        "Rotated At": result.rotated_at,
+        "Webhook ID": result.id || args.id,
+        "Secret Version": `${webhook.secret_version || 1} → ${result.new_secret_version || "new"}`,
+        "Grace Period": `${gracePeriod} hours`,
+        "Rotated At": result.rotated_at || new Date().toISOString(),
       });
 
       console.log();
       warn(
         "Copy your new webhook secret now. The old secret will expire in 24 hours!",
       );
-      codeBlock(result.new_secret);
+      codeBlock(secretValue);
 
       console.log();
       console.log(
@@ -120,7 +126,7 @@ export default class WebhooksRotateSecret extends AuthenticatedCommand {
       );
       console.log(
         colors.dim(
-          `The old secret will remain valid for ${result.grace_period_hours} hours to allow for graceful migration.`,
+          `The old secret will remain valid for ${gracePeriod} hours to allow for graceful migration.`,
         ),
       );
     } catch (err) {

@@ -14,7 +14,7 @@ interface WebhookDelivery {
   id: string;
   event_type: string;
   attempt_number: number;
-  max_attempts: number;
+  max_attempts?: number;
   status: "pending" | "delivered" | "failed" | "cancelled";
   response_status_code?: number;
   response_time?: number;
@@ -23,6 +23,14 @@ interface WebhookDelivery {
   next_retry_at?: string;
   created_at: string;
   delivered_at?: string;
+}
+
+interface DeliveriesResponse {
+  deliveries: WebhookDelivery[];
+  pagination: {
+    limit: number;
+    offset: number;
+  };
 }
 
 export default class WebhooksDeliveries extends AuthenticatedCommand {
@@ -63,12 +71,14 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
       ...(flags["failed-only"] && { status: "failed" }),
     });
 
-    const deliveries = await apiClient.get<WebhookDelivery[]>(
+    const response = await apiClient.get<DeliveriesResponse>(
       `/api/v1/webhooks/${args.id}/deliveries?${params.toString()}`,
     );
 
+    const deliveries = response.deliveries || [];
+
     if (isJsonMode()) {
-      json(deliveries);
+      json(response);
       return;
     }
 
@@ -92,7 +102,7 @@ export default class WebhooksDeliveries extends AuthenticatedCommand {
     // Add computed fields for better display
     const deliveriesWithComputed = deliveries.map((d) => ({
       ...d,
-      attemptDisplay: `${d.attempt_number}/${d.max_attempts}`,
+      attemptDisplay: `${d.attempt_number}/${d.max_attempts || 3}`,
     }));
 
     table(deliveriesWithComputed, [

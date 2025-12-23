@@ -11,7 +11,7 @@ import {
   isJsonMode,
 } from "../../lib/output.js";
 
-interface TestWebhookResponse {
+interface TestDelivery {
   id: string;
   delivery_id: string;
   webhook_url: string;
@@ -21,7 +21,13 @@ interface TestWebhookResponse {
   status_code?: number;
   response_body?: string;
   error?: string;
-  delivered_at: string;
+  delivered_at?: string;
+}
+
+interface TestWebhookResponse {
+  success: boolean;
+  message: string;
+  delivery?: TestDelivery;
 }
 
 export default class WebhooksTest extends AuthenticatedCommand {
@@ -61,32 +67,34 @@ export default class WebhooksTest extends AuthenticatedCommand {
         return;
       }
 
-      if (result.status === "delivered") {
+      const delivery = result.delivery;
+
+      if (result.success && delivery) {
         success("Test event delivered", {
-          "Delivery ID": result.delivery_id,
-          "Webhook URL": result.webhook_url,
-          "Event Type": result.event_type,
-          "Response Time": `${result.response_time}ms`,
-          "Status Code": String(result.status_code),
-          "Delivered At": result.delivered_at,
+          "Delivery ID": delivery.delivery_id,
+          "Webhook URL": delivery.webhook_url,
+          "Event Type": delivery.event_type,
+          "Response Time": `${delivery.response_time}ms`,
+          "Status Code": String(delivery.status_code),
+          "Delivered At": delivery.delivered_at || "Just now",
         });
 
-        if (result.response_body) {
+        if (delivery.response_body) {
           console.log();
           console.log(colors.dim("Response Body:"));
           console.log(
-            result.response_body.substring(0, 200) +
-              (result.response_body.length > 200 ? "..." : ""),
+            delivery.response_body.substring(0, 200) +
+              (delivery.response_body.length > 200 ? "..." : ""),
           );
         }
       } else {
         error("Test event failed", {
-          "Delivery ID": result.delivery_id,
-          "Webhook URL": result.webhook_url,
-          Status: result.status,
-          Error: result.error || "Unknown error",
-          ...(result.status_code && {
-            "Status Code": String(result.status_code),
+          "Delivery ID": delivery?.delivery_id || "N/A",
+          "Webhook URL": delivery?.webhook_url || "N/A",
+          Status: delivery?.status || "failed",
+          Error: delivery?.error || result.message || "Unknown error",
+          ...(delivery?.status_code && {
+            "Status Code": String(delivery.status_code),
           }),
         });
       }

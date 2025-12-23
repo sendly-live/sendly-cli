@@ -20,6 +20,9 @@ interface Webhook {
   is_active: boolean;
   failure_count: number;
   circuit_state: "closed" | "open" | "half_open";
+  total_deliveries: number;
+  success_rate: number;
+  last_delivery_at: string | null;
   created_at: string;
 }
 
@@ -105,20 +108,28 @@ export default class WebhooksList extends AuthenticatedCommand {
           v ? colors.success("active") : colors.error("disabled"),
       },
       {
-        header: "Circuit",
-        key: "circuit_state",
-        width: 10,
+        header: "Success",
+        key: "success_rate",
+        width: 8,
         formatter: (v) => {
-          switch (v) {
-            case "closed":
-              return colors.success("closed");
-            case "open":
-              return colors.error("open");
-            case "half_open":
-              return colors.warning("half_open");
-            default:
-              return String(v);
-          }
+          if (v === 0 || v === undefined) return colors.dim("—");
+          const rate = Number(v);
+          if (rate >= 90) return colors.success(`${rate}%`);
+          if (rate >= 50) return colors.warning(`${rate}%`);
+          return colors.error(`${rate}%`);
+        },
+      },
+      {
+        header: "Last Delivery",
+        key: "last_delivery_at",
+        width: 14,
+        formatter: (v) => {
+          if (!v) return colors.dim("Never");
+          const date = new Date(String(v));
+          return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
         },
       },
     ]);

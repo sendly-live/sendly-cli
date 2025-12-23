@@ -1,5 +1,25 @@
 # @sendly/cli
 
+## 3.1.1
+
+### Patch Changes
+
+- ## Bug Fixes
+  - **webhooks test**: Fixed API response structure - now correctly reads delivery details from nested `delivery` object
+  - **webhooks deliveries**: Fixed API response structure - now correctly extracts deliveries array from paginated response
+  - **webhooks rotate-secret**: Fixed API response to include all expected fields (id, new_secret_version, grace_period_hours, rotated_at)
+  - **webhooks list**: Added Success Rate and Last Delivery columns to match dashboard UI
+
+  ## New Features
+  - **sms list --page**: Added pagination support with `--page` flag for navigating through message history
+  - **sms list --offset**: Added `--offset` flag as alternative pagination method
+  - **sms list --sandbox**: Added `--sandbox` flag to view test/sandbox messages (live keys only)
+  - **sms list Mode column**: Now shows "test" or "live" indicator for each message
+
+  ## Security Improvements
+  - **API v1 messages endpoint**: Test API keys now only see sandbox messages (security enforced)
+  - **API v1 messages endpoint**: Live API keys see production messages by default, can request sandbox with `?sandbox=true`
+
 ## 3.1.0
 
 ### Minor Changes
