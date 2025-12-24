@@ -101,14 +101,19 @@ export default class WebhooksTest extends AuthenticatedCommand {
     } catch (err) {
       testSpinner.stop();
 
-      if (err instanceof Error && err.message.includes("404")) {
-        error(`Webhook not found: ${args.id}`);
-      } else {
-        if (err instanceof Error) {
-          error(`Failed to send test event: ${err.message}`);
+      // Check if it's a "webhook not found" error (API returns 404 status)
+      // vs a "target URL returned 404" error (API returns 400 with message)
+      if (err instanceof Error) {
+        const msg = err.message;
+        // Only show "not found" if the API itself returned 404 (webhook doesn't exist)
+        // Not if the webhook target URL returned 404
+        if (msg.includes("404") && !msg.includes("HTTP 404")) {
+          error(`Webhook not found: ${args.id}`);
         } else {
-          error(`Failed to send test event: ${String(err)}`);
+          error(`Failed to send test event: ${msg}`);
         }
+      } else {
+        error(`Failed to send test event: ${String(err)}`);
       }
       this.exit(1);
     }
