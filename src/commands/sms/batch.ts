@@ -67,6 +67,25 @@ interface BatchPreviewResponse {
     to: string;
     reason: string;
   }>;
+  compliance: {
+    messageType: "marketing" | "transactional";
+    shaftBlocked: number;
+    quietHoursBlocked: number;
+    quietHoursRescheduled: number;
+    shaftBlockedMessages: Array<{
+      index: number;
+      to: string;
+      category: string;
+      matchedTerms: string[];
+    }>;
+    quietHoursBlockedMessages: Array<{
+      index: number;
+      to: string;
+      recipientTimezone: string;
+      recipientLocalTime: string;
+      nextAllowedTime?: string;
+    }>;
+  };
   warnings: string[];
 }
 
@@ -80,6 +99,7 @@ export default class SmsBatch extends AuthenticatedCommand {
     '<%= config.bin %> sms batch --file recipients.csv --from "Sendly"',
     "<%= config.bin %> sms batch --file messages.json --json",
     '<%= config.bin %> sms batch --file phones.csv --text "Hi" --dry-run',
+    '<%= config.bin %> sms batch --file phones.csv --text "Your code: 123" --type transactional',
   ];
 
   static flags = {
@@ -103,10 +123,16 @@ export default class SmsBatch extends AuthenticatedCommand {
       char: "f",
       description: "Sender ID or phone number for all messages",
     }),
+    type: Flags.string({
+      description:
+        "Message type: marketing (default) or transactional. Transactional bypasses quiet hours.",
+      options: ["marketing", "transactional"],
+      default: "marketing",
+    }),
     "dry-run": Flags.boolean({
       char: "d",
       description:
-        "Preview batch without sending (validates access, shows cost breakdown)",
+        "Preview batch without sending (validates access, shows cost and compliance breakdown)",
       default: false,
     }),
   };
@@ -174,7 +200,7 @@ export default class SmsBatch extends AuthenticatedCommand {
       try {
         const preview = await apiClient.post<BatchPreviewResponse>(
           "/api/v1/messages/batch/preview",
-          { messages, text: flags.text },
+          { messages, text: flags.text, messageType: flags.type },
         );
 
         spin.stop();
@@ -237,6 +263,87 @@ export default class SmsBatch extends AuthenticatedCommand {
           }
         }
 
+        // Compliance check results
+        if (preview.compliance) {
+          console.log(colors.bold("\n🛡️  Compliance Check:\n"));
+          console.log(
+            `  Message Type:      ${preview.compliance.messageType.toUpperCase()}`,
+          );
+
+          if (preview.compliance.shaftBlocked > 0) {
+            console.log(
+              colors.error(
+                `  SHAFT Blocked:     ${preview.compliance.shaftBlocked} messages`,
+              ),
+            );
+            for (const msg of preview.compliance.shaftBlockedMessages.slice(
+              0,
+              3,
+            )) {
+              console.log(
+                colors.dim(
+                  `     └─ ${msg.to}: ${msg.category} (${msg.matchedTerms.join(", ")})`,
+                ),
+              );
+            }
+            if (preview.compliance.shaftBlockedMessages.length > 3) {
+              console.log(
+                colors.dim(
+                  `     ... and ${preview.compliance.shaftBlockedMessages.length - 3} more`,
+                ),
+              );
+            }
+          } else {
+            console.log(
+              colors.success(
+                "  SHAFT Check:       ✓ All messages pass content filter",
+              ),
+            );
+          }
+
+          if (preview.compliance.messageType === "marketing") {
+            if (preview.compliance.quietHoursRescheduled > 0) {
+              console.log(
+                colors.warning(
+                  `  Quiet Hours:       ${preview.compliance.quietHoursRescheduled} messages will be rescheduled`,
+                ),
+              );
+              for (const msg of preview.compliance.quietHoursBlockedMessages.slice(
+                0,
+                3,
+              )) {
+                const nextTime = msg.nextAllowedTime
+                  ? new Date(msg.nextAllowedTime).toLocaleString()
+                  : "next available window";
+                console.log(
+                  colors.dim(
+                    `     └─ ${msg.to}: ${msg.recipientTimezone} → ${nextTime}`,
+                  ),
+                );
+              }
+              if (preview.compliance.quietHoursBlockedMessages.length > 3) {
+                console.log(
+                  colors.dim(
+                    `     ... and ${preview.compliance.quietHoursBlockedMessages.length - 3} more`,
+                  ),
+                );
+              }
+            } else {
+              console.log(
+                colors.success(
+                  "  Quiet Hours:       ✓ All recipients within allowed hours",
+                ),
+              );
+            }
+          } else {
+            console.log(
+              colors.dim(
+                "  Quiet Hours:       Bypassed (transactional message)",
+              ),
+            );
+          }
+        }
+
         // Warnings
         if (preview.warnings.length > 0) {
           console.log(colors.warning("\n⚠️  Warnings:"));
@@ -282,6 +389,7 @@ export default class SmsBatch extends AuthenticatedCommand {
         "/api/v1/messages/batch",
         {
           messages,
+          messageType: flags.type,
           ...(flags.from && { from: flags.from }),
         },
       );

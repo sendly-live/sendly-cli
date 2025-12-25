@@ -27,6 +27,7 @@ export default class SmsSchedule extends AuthenticatedCommand {
   static examples = [
     '<%= config.bin %> sms schedule --to +15551234567 --text "Reminder!" --at "2025-01-20T10:00:00Z"',
     '<%= config.bin %> sms schedule --to +15551234567 --text "Meeting in 1 hour" --at "2025-01-15T14:00:00Z" --from "Sendly"',
+    '<%= config.bin %> sms schedule --to +15551234567 --text "Your code: 123456" --at "2025-01-20T10:00:00Z" --type transactional',
     '<%= config.bin %> sms schedule --to +15551234567 --text "Hello!" --at "2025-01-20T10:00:00Z" --json',
   ];
 
@@ -51,6 +52,12 @@ export default class SmsSchedule extends AuthenticatedCommand {
     from: Flags.string({
       char: "f",
       description: "Sender ID or phone number",
+    }),
+    type: Flags.string({
+      description:
+        "Message type: marketing (default) or transactional. Transactional messages bypass quiet hours.",
+      options: ["marketing", "transactional"],
+      default: "marketing",
     }),
   };
 
@@ -105,6 +112,7 @@ export default class SmsSchedule extends AuthenticatedCommand {
           to: flags.to,
           text: flags.text,
           scheduledAt: flags.at,
+          messageType: flags.type,
           ...(flags.from && { from: flags.from }),
         },
       );

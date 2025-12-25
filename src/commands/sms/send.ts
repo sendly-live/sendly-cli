@@ -29,6 +29,7 @@ export default class SmsSend extends AuthenticatedCommand {
   static examples = [
     '<%= config.bin %> sms send --to +15551234567 --text "Hello!"',
     '<%= config.bin %> sms send --to +15551234567 --text "Hello!" --from "Sendly"',
+    '<%= config.bin %> sms send --to +15551234567 --text "Hello!" --type transactional',
     '<%= config.bin %> sms send --to +15551234567 --text "Hello!" --json',
   ];
 
@@ -47,6 +48,11 @@ export default class SmsSend extends AuthenticatedCommand {
     from: Flags.string({
       char: "f",
       description: "Sender ID or phone number",
+    }),
+    type: Flags.string({
+      description: "Message type: marketing (default) or transactional",
+      options: ["marketing", "transactional"],
+      default: "marketing",
     }),
   };
 
@@ -76,8 +82,9 @@ export default class SmsSend extends AuthenticatedCommand {
         {
           to: flags.to,
           text: flags.text,
+          messageType: flags.type,
           ...(flags.from && { from: flags.from }),
-        }
+        },
       );
 
       spin.stop();
