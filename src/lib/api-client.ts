@@ -68,6 +68,16 @@ export class AuthenticationError extends ApiError {
   }
 }
 
+export class ApiKeyRequiredError extends ApiError {
+  constructor(
+    message: string = "API key required for this operation.",
+    public hint: string = "Set SENDLY_API_KEY environment variable or create a key with: sendly keys create --type test",
+  ) {
+    super("api_key_required", message, 401);
+    this.name = "ApiKeyRequiredError";
+  }
+}
+
 export class RateLimitError extends ApiError {
   constructor(
     public retryAfter: number,
@@ -204,6 +214,17 @@ class ApiClient {
     switch (statusCode) {
       case 401:
       case 403:
+        // Detect if this is an API key required error vs general auth error
+        if (
+          error === "invalid_api_key" ||
+          error === "api_key_required" ||
+          message?.toLowerCase().includes("api key")
+        ) {
+          throw new ApiKeyRequiredError(
+            "API key required for sending messages",
+            "Set SENDLY_API_KEY environment variable or create a key with:\n  sendly keys create --type test",
+          );
+        }
         throw new AuthenticationError(message);
       case 402:
         throw new InsufficientCreditsError(message);

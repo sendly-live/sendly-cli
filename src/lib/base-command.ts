@@ -6,7 +6,11 @@
 import { Command, Flags } from "@oclif/core";
 import { setOutputFormat, setQuietMode, error } from "./output.js";
 import { isAuthenticated } from "./config.js";
-import { ApiError, AuthenticationError } from "./api-client.js";
+import {
+  ApiError,
+  AuthenticationError,
+  ApiKeyRequiredError,
+} from "./api-client.js";
 
 export abstract class BaseCommand extends Command {
   static baseFlags = {
@@ -34,6 +38,13 @@ export abstract class BaseCommand extends Command {
   }
 
   protected async catch(err: Error): Promise<void> {
+    if (err instanceof ApiKeyRequiredError) {
+      error(err.message, {
+        hint: err.hint,
+      });
+      this.exit(1);
+    }
+
     if (err instanceof AuthenticationError) {
       error("Not authenticated", {
         hint: "Run 'sendly login' to authenticate",
