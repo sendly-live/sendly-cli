@@ -28,6 +28,7 @@ import {
   apiClient,
   ApiError,
   AuthenticationError,
+  ApiKeyRequiredError,
   RateLimitError,
   InsufficientCreditsError,
 } from "../../src/lib/api-client.js";
@@ -192,16 +193,34 @@ describe("API Client", () => {
   });
 
   describe("error handling", () => {
-    it("throws AuthenticationError on 401", async () => {
+    it("throws AuthenticationError on 401 (generic auth error)", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
-        json: () => Promise.resolve({ message: "Invalid API key" }),
+        json: () =>
+          Promise.resolve({ error: "unauthorized", message: "Invalid token" }),
         headers: new Map(),
       });
 
       await expect(apiClient.get("/api/test")).rejects.toThrow(
         AuthenticationError,
+      );
+    });
+
+    it("throws ApiKeyRequiredError on 401 with api_key_required error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () =>
+          Promise.resolve({
+            error: "api_key_required",
+            message: "API key required",
+          }),
+        headers: new Map(),
+      });
+
+      await expect(apiClient.get("/api/test")).rejects.toThrow(
+        ApiKeyRequiredError,
       );
     });
 
