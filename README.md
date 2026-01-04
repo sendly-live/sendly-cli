@@ -1,3 +1,12 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SendlyHQ/sendly-cli/main/.github/header.svg" alt="Sendly CLI" />
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@sendly/cli"><img src="https://img.shields.io/npm/v/@sendly/cli.svg?style=flat-square" alt="npm version" /></a>
+  <a href="https://github.com/SendlyHQ/sendly-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@sendly/cli.svg?style=flat-square" alt="license" /></a>
+</p>
+
 # @sendly/cli
 
 Official command-line interface for the [Sendly](https://sendly.live) SMS API.
