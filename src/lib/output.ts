@@ -43,6 +43,7 @@ export const colors = {
   dim: chalk.dim,
   bold: chalk.bold,
   code: chalk.cyan,
+  highlight: chalk.bold.hex("#F59E0B"),
 };
 
 // Success output
@@ -109,7 +110,7 @@ export interface TableColumn {
   header: string;
   key: string;
   width?: number;
-  formatter?: (value: unknown) => string;
+  formatter?: (value: unknown, row?: Record<string, any>) => string;
 }
 
 export function table(
@@ -140,7 +141,7 @@ export function table(
       columns.map((col) => {
         const value = row[col.key];
         if (col.formatter) {
-          return col.formatter(value);
+          return col.formatter(value, row);
         }
         return String(value ?? "-");
       }),
@@ -239,19 +240,34 @@ export function divider(): void {
   console.log();
 }
 
-// Key-value display
-export function keyValue(data: Record<string, unknown>): void {
+// Key-value display - accepts Record or array of [key, value] tuples
+export function keyValue(data: Record<string, unknown> | Array<[string, string | number]>): void {
+  const entries = Array.isArray(data) ? data : Object.entries(data);
+
   if (isJsonMode()) {
-    console.log(JSON.stringify(data, null, 2));
+    const obj = Array.isArray(data) ? Object.fromEntries(data) : data;
+    console.log(JSON.stringify(obj, null, 2));
     return;
   }
 
-  const maxKeyLength = Math.max(...Object.keys(data).map((k) => k.length));
+  const maxKeyLength = Math.max(...entries.map(([k]) => k.length));
 
-  Object.entries(data).forEach(([key, value]) => {
+  entries.forEach(([key, value]) => {
     const paddedKey = key.padEnd(maxKeyLength);
     console.log(`  ${colors.dim(paddedKey)}  ${value}`);
   });
+}
+
+// Detail view with title and key-value pairs
+export function detail(title: string, data: Record<string, unknown>): void {
+  if (isJsonMode()) {
+    console.log(JSON.stringify({ title, ...data }, null, 2));
+    return;
+  }
+
+  console.log(colors.bold(title));
+  console.log();
+  keyValue(data);
 }
 
 // Code block
