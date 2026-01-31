@@ -112,7 +112,7 @@ export default class Status extends AuthenticatedCommand {
     const tierDisplay = {
       sandbox: colors.warning("Sandbox") + colors.dim(" (test only)"),
       international:
-        colors.primary("International") + colors.dim(" (48 countries)"),
+        colors.primary("International") + colors.dim(" (90+ countries)"),
       domestic: colors.success("US & Canada") + colors.dim(" (toll-free)"),
       global: colors.success("Global") + colors.dim(" (full access)"),
     };
@@ -182,7 +182,7 @@ export default class Status extends AuthenticatedCommand {
       ? colors.success("✓")
       : colors.dim("○");
     const intlLabel = caps.canSendInternational
-      ? "48 countries"
+      ? "90+ countries"
       : colors.dim("Upgrade to unlock");
     console.log(`    ${intlIcon} ${colors.dim("International")}  ${intlLabel}`);
 
