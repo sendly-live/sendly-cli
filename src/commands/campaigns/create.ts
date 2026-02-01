@@ -1,14 +1,20 @@
 import { Flags } from "@oclif/core";
 import { AuthenticatedCommand } from "../../lib/base-command.js";
 import { apiClient } from "../../lib/api-client.js";
-import { json, success, colors, isJsonMode, keyValue } from "../../lib/output.js";
+import {
+  json,
+  success,
+  colors,
+  isJsonMode,
+  keyValue,
+} from "../../lib/output.js";
 
 interface Campaign {
   id: string;
   name: string;
-  text: string;
+  messageText: string;
   status: string;
-  recipientCount: number;
+  totalRecipients: number;
   estimatedCredits: number;
   createdAt: string;
 }
@@ -19,7 +25,7 @@ export default class CampaignsCreate extends AuthenticatedCommand {
   static examples = [
     '<%= config.bin %> campaigns create --name "Welcome" --text "Hello {{name}}!" --list lst_xxx',
     '<%= config.bin %> campaigns create --name "Sale" --text "50% off today!" --list lst_customers --list lst_subscribers',
-    "<%= config.bin %> campaigns create --name \"OTP\" --template tpl_preset_otp --list lst_xxx",
+    '<%= config.bin %> campaigns create --name "OTP" --template tpl_preset_otp --list lst_xxx',
   ];
 
   static flags = {
@@ -53,9 +59,10 @@ export default class CampaignsCreate extends AuthenticatedCommand {
 
     const campaign = await apiClient.post<Campaign>("/api/v1/campaigns", {
       name: flags.name,
-      text: flags.text,
+      messageText: flags.text,
       templateId: flags.template,
-      contactListIds: flags.list,
+      targetType: "contact_list",
+      targetListId: flags.list![0],
     });
 
     if (isJsonMode()) {
@@ -69,14 +76,20 @@ export default class CampaignsCreate extends AuthenticatedCommand {
     keyValue([
       ["Name", campaign.name],
       ["Status", colors.dim("draft")],
-      ["Recipients", String(campaign.recipientCount)],
+      ["Recipients", String(campaign.totalRecipients)],
       ["Estimated Credits", String(campaign.estimatedCredits)],
     ]);
 
     console.log();
     console.log(colors.dim("Next steps:"));
-    console.log(`  Preview:  ${colors.code(`sendly campaigns preview ${campaign.id}`)}`);
-    console.log(`  Send now: ${colors.code(`sendly campaigns send ${campaign.id}`)}`);
-    console.log(`  Schedule: ${colors.code(`sendly campaigns schedule ${campaign.id} --at "2024-01-15T10:00:00Z"`)}`);
+    console.log(
+      `  Preview:  ${colors.code(`sendly campaigns preview ${campaign.id}`)}`,
+    );
+    console.log(
+      `  Send now: ${colors.code(`sendly campaigns send ${campaign.id}`)}`,
+    );
+    console.log(
+      `  Schedule: ${colors.code(`sendly campaigns schedule ${campaign.id} --at "2024-01-15T10:00:00Z"`)}`,
+    );
   }
 }
