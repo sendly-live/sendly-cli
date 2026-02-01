@@ -4,20 +4,21 @@ import { apiClient } from "../../lib/api-client.js";
 import { json, colors, isJsonMode, keyValue, warn } from "../../lib/output.js";
 
 interface CampaignPreview {
-  id: string;
   recipientCount: number;
-  estimatedSegments: number;
   estimatedCredits: number;
   currentBalance: number;
   hasEnoughCredits: boolean;
-  breakdown?: Array<{
-    country: string;
-    count: number;
-    creditsPerMessage: number;
-    totalCredits: number;
-  }>;
   blockedCount?: number;
   sendableCount?: number;
+  byCountry?: Record<
+    string,
+    {
+      count: number;
+      credits: number;
+      allowed: boolean;
+      blockedReason?: string;
+    }
+  >;
   warnings?: string[];
 }
 
@@ -58,7 +59,7 @@ export default class CampaignsPreview extends AuthenticatedCommand {
 
     keyValue([
       ["Recipients", String(preview.recipientCount)],
-      ["Segments per message", String(preview.estimatedSegments)],
+      ["Sendable", String(preview.sendableCount ?? preview.recipientCount)],
       ["Estimated Credits", colors.bold(String(preview.estimatedCredits))],
       ["Your Balance", String(preview.currentBalance)],
       [
@@ -91,14 +92,15 @@ export default class CampaignsPreview extends AuthenticatedCommand {
       }
     }
 
-    if (preview.breakdown && preview.breakdown.length > 0) {
+    if (preview.byCountry && Object.keys(preview.byCountry).length > 0) {
       console.log();
       console.log(colors.dim("Cost breakdown by country:"));
       console.log();
 
-      for (const item of preview.breakdown) {
+      for (const [country, info] of Object.entries(preview.byCountry)) {
+        const status = info.allowed ? "" : colors.dim(" (blocked)");
         console.log(
-          `  ${item.country.padEnd(20)} ${String(item.count).padStart(6)} recipients × ${item.creditsPerMessage} = ${colors.bold(String(item.totalCredits))} credits`,
+          `  ${country.padEnd(6)} ${String(info.count).padStart(4)} recipients  ${colors.bold(String(info.credits))} credits${status}`,
         );
       }
     }

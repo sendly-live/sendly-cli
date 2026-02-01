@@ -11,12 +11,13 @@ import {
 } from "../../lib/output.js";
 import * as readline from "readline";
 
-interface Campaign {
-  id: string;
-  name: string;
+interface BatchResult {
+  batchId: string;
   status: string;
-  totalRecipients: number;
-  estimatedCredits: number;
+  total: number;
+  sent: number;
+  failed: number;
+  creditsUsed: number;
 }
 
 interface CampaignPreview {
@@ -123,26 +124,27 @@ export default class CampaignsSend extends AuthenticatedCommand {
       }
     }
 
-    const campaign = await apiClient.post<Campaign>(
+    const result = await apiClient.post<BatchResult>(
       `/api/v1/campaigns/${args.id}/send`,
     );
 
     if (isJsonMode()) {
-      json(campaign);
+      json(result);
       return;
     }
 
-    success(`Campaign is now sending!`);
+    success(`Campaign sent!`);
     console.log();
 
     keyValue([
-      ["Campaign", campaign.name],
-      ["Status", colors.info("sending")],
-      ["Recipients", String(campaign.totalRecipients)],
+      ["Total", String(result.total)],
+      ["Sent", colors.success(String(result.sent))],
+      ["Failed", result.failed > 0 ? colors.error(String(result.failed)) : "0"],
+      ["Credits Used", String(result.creditsUsed)],
     ]);
 
     console.log();
     console.log(colors.dim("Check status:"));
-    console.log(`  ${colors.code(`sendly campaigns get ${campaign.id}`)}`);
+    console.log(`  ${colors.code(`sendly campaigns get ${args.id}`)}`);
   }
 }
