@@ -61,6 +61,12 @@ export default class WebhooksCreate extends AuthenticatedCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(WebhooksCreate);
 
+    const testUrlPatterns = ["localhost", "127.0.0.1", ".ngrok.", ".loca.lt", "webhook.site"];
+    const isTestUrl = testUrlPatterns.some((p) => flags.url.toLowerCase().includes(p));
+    if (!flags.url.startsWith("https://") && !isTestUrl) {
+      this.error("Webhook URL must use HTTPS. Use http:// only for local development URLs (localhost, ngrok, etc.).");
+    }
+
     const events = flags.events.split(",").map((e) => e.trim());
 
     const response = await apiClient.post<CreateWebhookResponse>(

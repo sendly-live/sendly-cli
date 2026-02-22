@@ -72,6 +72,13 @@ export default class WebhooksListen extends AuthenticatedCommand {
 
   async run(): Promise<void> {
     const { flags } = await this.parse(WebhooksListen);
+
+    try {
+      new URL(flags.forward);
+    } catch {
+      this.error(`Invalid forward URL: ${flags.forward}. Must be a valid URL (e.g., http://localhost:3000/webhook).`);
+    }
+
     const events = flags.events.split(",").map((e) => e.trim());
 
     const spin = spinner("Starting webhook listener...");

@@ -4,7 +4,7 @@
  */
 
 import { createRequire } from "node:module";
-import { getAuthToken, getConfigValue, getEffectiveValue } from "./config.js";
+import { getAuthToken, getStoredAccessToken, getConfigValue, getEffectiveValue, setAuthTokens } from "./config.js";
 
 // Read version from package.json
 const require = createRequire(import.meta.url);
@@ -126,12 +126,29 @@ export class ValidationError extends ApiError {
 
 class ApiClient {
   private rateLimitInfo?: RateLimitInfo;
+  private refreshing: Promise<boolean> | null = null;
 
   private getBaseUrl(): string {
     return getConfigValue("baseUrl") || "https://sendly.live";
   }
 
-  private getHeaders(requireAuth: boolean = true): Record<string, string> {
+  private async ensureAuth(): Promise<string> {
+    let token = getAuthToken();
+    if (token) return token;
+
+    const stored = getStoredAccessToken();
+    if (stored?.startsWith("cli_")) {
+      const refreshed = await this.refreshTokens();
+      if (refreshed) {
+        token = getAuthToken();
+        if (token) return token;
+      }
+    }
+
+    throw new AuthenticationError();
+  }
+
+  private async getHeaders(requireAuth: boolean = true): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -139,11 +156,7 @@ class ApiClient {
     };
 
     if (requireAuth) {
-      const token = getAuthToken();
-      if (!token) {
-        throw new AuthenticationError();
-      }
-      headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${await this.ensureAuth()}`;
     }
 
     const orgId = getEffectiveValue("currentOrgId");
@@ -152,6 +165,54 @@ class ApiClient {
     }
 
     return headers;
+  }
+
+  private async refreshTokens(): Promise<boolean> {
+    if (this.refreshing) return this.refreshing;
+
+    this.refreshing = (async () => {
+      const stored = getStoredAccessToken();
+      if (!stored) return false;
+
+      try {
+        const response = await fetch(`${this.getBaseUrl()}/api/cli/auth/refresh`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": `@sendly/cli/${version}`,
+          },
+          body: JSON.stringify({ accessToken: stored }),
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json() as {
+          accessToken: string;
+          refreshToken: string;
+          expiresIn: number;
+          userId: string;
+          email: string;
+        };
+
+        setAuthTokens(
+          data.accessToken,
+          data.refreshToken,
+          data.expiresIn,
+          data.userId,
+          data.email,
+        );
+
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+
+    try {
+      return await this.refreshing;
+    } finally {
+      this.refreshing = null;
+    }
   }
 
   async request<T>(
@@ -177,6 +238,7 @@ class ApiClient {
     }
 
     let lastError: Error | undefined;
+    let didRefresh = false;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -185,18 +247,25 @@ class ApiClient {
 
         const response = await fetch(url.toString(), {
           method,
-          headers: this.getHeaders(requireAuth),
+          headers: await this.getHeaders(requireAuth),
           body: body ? JSON.stringify(body) : undefined,
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
 
-        // Update rate limit info
         this.updateRateLimitInfo(response.headers);
 
-        // Parse response
         const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401 && requireAuth && !didRefresh) {
+          didRefresh = true;
+          const refreshed = await this.refreshTokens();
+          if (refreshed) {
+            attempt--;
+            continue;
+          }
+        }
 
         if (!response.ok) {
           this.handleError(response.status, data);
@@ -206,23 +275,19 @@ class ApiClient {
       } catch (error) {
         lastError = error as Error;
 
-        // Don't retry non-retryable errors (4xx client errors)
         if (!isRetryableError(error)) {
           throw error;
         }
 
-        // Don't retry on last attempt
         if (attempt === maxRetries) {
           throw error;
         }
 
-        // Exponential backoff: 1s, 2s, 4s, etc.
         const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000);
         await sleep(backoffMs);
       }
     }
 
-    // Should never reach here, but TypeScript needs this
     throw lastError || new Error("Request failed");
   }
 
@@ -347,14 +412,11 @@ class ApiClient {
     };
 
     if (requireAuth) {
-      const token = getAuthToken();
-      if (!token) {
-        throw new AuthenticationError();
-      }
-      headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${await this.ensureAuth()}`;
     }
 
     let lastError: Error | undefined;
+    let didRefresh = false;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -372,6 +434,16 @@ class ApiClient {
 
         this.updateRateLimitInfo(response.headers);
         const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401 && requireAuth && !didRefresh) {
+          didRefresh = true;
+          const refreshed = await this.refreshTokens();
+          if (refreshed) {
+            headers["Authorization"] = `Bearer ${getAuthToken()}`;
+            attempt--;
+            continue;
+          }
+        }
 
         if (!response.ok) {
           this.handleError(response.status, data);

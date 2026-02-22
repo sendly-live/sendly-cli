@@ -325,6 +325,10 @@ export function getAuthToken(): string | undefined {
   return undefined;
 }
 
+export function getStoredAccessToken(): string | undefined {
+  return config.get("accessToken") || undefined;
+}
+
 export function setApiKey(apiKey: string): void {
   // Validate API key format
   if (!/^sk_(test|live)_v1_[a-zA-Z0-9_-]+$/.test(apiKey)) {
