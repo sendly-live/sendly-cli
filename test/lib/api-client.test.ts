@@ -8,6 +8,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // Mock config module
 vi.mock("../../src/lib/config.js", () => ({
   getAuthToken: vi.fn(() => "sk_test_v1_mock_token"),
+  getStoredAccessToken: vi.fn(() => undefined),
+  setAuthTokens: vi.fn(),
   getConfigValue: vi.fn((key: string) => {
     if (key === "baseUrl") return "https://sendly.live";
     return undefined;
