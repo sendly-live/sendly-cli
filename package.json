@@ -1,6 +1,6 @@
 {
   "name": "@sendly/cli",
-  "version": "3.15.3",
+  "version": "3.15.4",
   "type": "module",
   "description": "Sendly CLI - Send SMS from your terminal",
   "author": "Sendly <support@sendly.live>",
@@ -55,6 +55,9 @@
       },
       "teams": {
         "description": "Manage teams and organizations"
+      },
+      "credits": {
+        "description": "Manage credits and transfers"
       }
     }
   },
