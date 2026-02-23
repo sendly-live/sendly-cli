@@ -68,7 +68,7 @@ export default class SmsList extends AuthenticatedCommand {
     }),
     status: Flags.string({
       char: "s",
-      description: "Filter by status (queued, sent, delivered, failed)",
+      description: "Filter by status (queued, sent, delivered, failed, bounced, retrying)",
     }),
     sandbox: Flags.boolean({
       description: "Show sandbox/test messages (live keys only)",

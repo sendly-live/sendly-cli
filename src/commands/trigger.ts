@@ -8,6 +8,7 @@ const VALID_EVENT_TYPES = [
   "message.delivered",
   "message.failed",
   "message.bounced",
+  "message.retrying",
   "message.received",
 ];
 

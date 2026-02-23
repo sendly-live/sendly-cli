@@ -62,7 +62,7 @@ export default class WebhooksListen extends AuthenticatedCommand {
     events: Flags.string({
       char: "e",
       description: "Comma-separated list of events to listen for",
-      default: "message.sent,message.delivered,message.failed,message.bounced",
+      default: "message.sent,message.delivered,message.failed,message.bounced,message.retrying",
     }),
   };
 
@@ -226,7 +226,8 @@ export default class WebhooksListen extends AuthenticatedCommand {
 
     let statusColor = colors.info;
     if (eventType.includes("delivered")) statusColor = colors.success;
-    if (eventType.includes("failed")) statusColor = colors.error;
+    if (eventType.includes("failed") || eventType.includes("bounced")) statusColor = colors.error;
+    if (eventType.includes("retrying")) statusColor = colors.warning;
 
     console.log(
       `${colors.dim(timestamp)} ${statusColor("→")} ${colors.bold(eventType)}`,
