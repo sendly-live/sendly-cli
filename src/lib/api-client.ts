@@ -378,7 +378,7 @@ class ApiClient {
 
   /**
    * Upload a file using multipart/form-data
-   * Used for batch CSV uploads to Supabase storage
+   * Used for batch CSV uploads to R2 storage
    */
   async uploadFile<T>(
     path: string,

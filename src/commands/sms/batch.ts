@@ -195,7 +195,7 @@ export default class SmsBatch extends AuthenticatedCommand {
       return this.sendInlineRecipients(flags);
     }
 
-    // Handle --file flag (upload to Supabase)
+    // Handle --file flag (upload to R2)
     if (flags.file) {
       return this.uploadAndSend(flags);
     }
@@ -314,7 +314,7 @@ export default class SmsBatch extends AuthenticatedCommand {
 
   /**
    * Send to inline recipients (--to flag)
-   * This path doesn't upload to Supabase since it's just a few numbers
+   * This path doesn't upload to R2 since it's just a few numbers
    */
   private async sendInlineRecipients(flags: {
     to?: string;
@@ -348,7 +348,7 @@ export default class SmsBatch extends AuthenticatedCommand {
   }
 
   /**
-   * Upload CSV to Supabase and send
+   * Upload CSV to R2 and send
    */
   private async uploadAndSend(flags: {
     file?: string;
@@ -388,7 +388,7 @@ export default class SmsBatch extends AuthenticatedCommand {
     const spin = spinner(`Uploading ${filename}...`).start();
 
     try {
-      // Upload to Supabase via CLI endpoint
+      // Upload to R2 via CLI endpoint
       const response = await apiClient.uploadFile<BatchUploadResponse>(
         "/api/cli/batch/upload",
         { buffer, filename, mimetype: "text/csv" },
