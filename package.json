@@ -1,6 +1,6 @@
 {
   "name": "@sendly/cli",
-  "version": "3.17.0",
+  "version": "3.18.0",
   "type": "module",
   "description": "Sendly CLI - Send SMS from your terminal",
   "author": "Sendly <support@sendly.live>",
