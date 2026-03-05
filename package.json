@@ -58,6 +58,24 @@
       },
       "credits": {
         "description": "Manage credits and transfers"
+      },
+      "enterprise": {
+        "description": "Manage enterprise workspaces, billing, and analytics"
+      },
+      "enterprise workspaces": {
+        "description": "Create, list, and manage enterprise workspaces"
+      },
+      "enterprise keys": {
+        "description": "Manage API keys for enterprise workspaces"
+      },
+      "enterprise webhooks": {
+        "description": "Manage enterprise-level webhooks"
+      },
+      "enterprise analytics": {
+        "description": "View enterprise analytics and reports"
+      },
+      "enterprise quota": {
+        "description": "Manage workspace message quotas"
       }
     }
   },

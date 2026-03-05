@@ -62,7 +62,7 @@ export default class CreditsBalance extends AuthenticatedCommand {
     console.log();
 
     // Show approximate message capacity
-    const domesticMessages = Math.floor(availableCredits / 1);
+    const domesticMessages = Math.floor(availableCredits / 2);
     const internationalMessages = Math.floor(availableCredits / 2);
 
     console.log(colors.dim("Estimated capacity:"));

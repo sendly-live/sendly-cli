@@ -4,7 +4,13 @@
  */
 
 import { createRequire } from "node:module";
-import { getAuthToken, getStoredAccessToken, getConfigValue, getEffectiveValue, setAuthTokens } from "./config.js";
+import {
+  getAuthToken,
+  getStoredAccessToken,
+  getConfigValue,
+  getEffectiveValue,
+  setAuthTokens,
+} from "./config.js";
 
 // Read version from package.json
 const require = createRequire(import.meta.url);
@@ -118,7 +124,8 @@ export class ValidationError extends ApiError {
     message: string = "Validation failed",
     details?: Record<string, unknown>,
   ) {
-    const hint = "Check the command help with --help for valid options and formats";
+    const hint =
+      "Check the command help with --help for valid options and formats";
     super("validation_error", message, 400, details, hint);
     this.name = "ValidationError";
   }
@@ -148,7 +155,9 @@ class ApiClient {
     throw new AuthenticationError();
   }
 
-  private async getHeaders(requireAuth: boolean = true): Promise<Record<string, string>> {
+  private async getHeaders(
+    requireAuth: boolean = true,
+  ): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -175,18 +184,21 @@ class ApiClient {
       if (!stored) return false;
 
       try {
-        const response = await fetch(`${this.getBaseUrl()}/api/cli/auth/refresh`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": `@sendly/cli/${version}`,
+        const response = await fetch(
+          `${this.getBaseUrl()}/api/cli/auth/refresh`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": `@sendly/cli/${version}`,
+            },
+            body: JSON.stringify({ accessToken: stored }),
           },
-          body: JSON.stringify({ accessToken: stored }),
-        });
+        );
 
         if (!response.ok) return false;
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
           accessToken: string;
           refreshToken: string;
           expiresIn: number;
@@ -370,6 +382,14 @@ class ApiClient {
     requireAuth: boolean = true,
   ): Promise<T> {
     return this.request<T>("PATCH", path, { body, requireAuth });
+  }
+
+  async put<T>(
+    path: string,
+    body?: Record<string, unknown>,
+    requireAuth: boolean = true,
+  ): Promise<T> {
+    return this.request<T>("PUT", path, { body, requireAuth });
   }
 
   async delete<T>(path: string, requireAuth: boolean = true): Promise<T> {
