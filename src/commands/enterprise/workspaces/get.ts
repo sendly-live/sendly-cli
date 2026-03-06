@@ -15,14 +15,19 @@ interface WorkspaceDetail {
   id: string;
   name: string;
   slug: string;
-  status: string;
-  creditBalance: number;
-  verificationStatus: string;
-  phoneNumber?: string;
-  memberCount: number;
-  messagesSent: number;
-  messagesDelivered: number;
   createdAt: string;
+  verification: {
+    status: string;
+    type: string | null;
+    tollFreeNumber: string | null;
+    businessName: string | null;
+  } | null;
+  creditBalance: number;
+  keyCount: number;
+  messages30d: number;
+  delivered30d: number;
+  failed30d: number;
+  deliveryRate: number;
 }
 
 export default class WorkspacesGet extends AuthenticatedCommand {
@@ -58,26 +63,27 @@ export default class WorkspacesGet extends AuthenticatedCommand {
 
     header(`Workspace: ${workspace.name}`);
 
-    const statusColor =
-      workspace.status === "active" ? colors.success : colors.error;
+    const verificationStatus = workspace.verification?.status || "unverified";
 
     keyValue({
       ID: colors.dim(workspace.id),
       Name: workspace.name,
       Slug: workspace.slug,
-      Status: statusColor(workspace.status),
       Verification:
-        workspace.verificationStatus === "approved"
+        verificationStatus === "approved"
           ? colors.success("verified")
-          : colors.warning(workspace.verificationStatus),
-      Phone: workspace.phoneNumber || colors.dim("not assigned"),
+          : verificationStatus === "pending"
+            ? colors.warning("pending")
+            : colors.dim(verificationStatus),
+      Phone: workspace.verification?.tollFreeNumber || colors.dim("not assigned"),
+      Business: workspace.verification?.businessName || colors.dim("n/a"),
       Credits: formatCredits(workspace.creditBalance),
-      Members: String(workspace.memberCount),
-      "Messages Sent": workspace.messagesSent.toLocaleString(),
-      "Messages Delivered": workspace.messagesDelivered.toLocaleString(),
+      "API Keys": String(workspace.keyCount),
+      "Messages (30d)": workspace.messages30d.toLocaleString(),
+      "Delivered (30d)": workspace.delivered30d.toLocaleString(),
       "Delivery Rate":
-        workspace.messagesSent > 0
-          ? `${((workspace.messagesDelivered / workspace.messagesSent) * 100).toFixed(1)}%`
+        workspace.messages30d > 0
+          ? `${workspace.deliveryRate.toFixed(1)}%`
           : colors.dim("n/a"),
       Created: formatDate(workspace.createdAt),
     });

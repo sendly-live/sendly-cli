@@ -34,9 +34,10 @@ export default class WorkspacesList extends AuthenticatedCommand {
   };
 
   async run(): Promise<void> {
-    const workspaces = await apiClient.get<Workspace[]>(
+    const response = await apiClient.get<{ workspaces: Workspace[] }>(
       "/api/v1/enterprise/workspaces",
     );
+    const workspaces = response.workspaces || [];
 
     if (isJsonMode()) {
       json(workspaces);
