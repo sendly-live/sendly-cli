@@ -12,10 +12,10 @@ import {
 import * as fs from "node:fs";
 
 interface ProvisionResponse {
-  organization: { id: string; name: string; slug: string };
+  workspace: { id: string; name: string; slug: string };
   verification?: { status: string };
   credits?: { balance: number };
-  apiKey?: { id: string; key: string; prefix: string };
+  key?: { id: string; name: string; key: string; keyPrefix: string; type: string };
   webhook?: { url: string };
   optInPage?: { id: string; slug: string };
 }
@@ -111,9 +111,9 @@ export default class EnterpriseProvision extends AuthenticatedCommand {
     }
 
     const details: Record<string, string> = {
-      ID: response.organization.id,
-      Name: response.organization.name,
-      Slug: response.organization.slug,
+      ID: response.workspace.id,
+      Name: response.workspace.name,
+      Slug: response.workspace.slug,
     };
 
     if (response.verification) {
@@ -124,8 +124,8 @@ export default class EnterpriseProvision extends AuthenticatedCommand {
     if (response.credits) {
       details["Credits"] = `${response.credits.balance.toLocaleString()} credits`;
     }
-    if (response.apiKey) {
-      details["API Key"] = response.apiKey.key;
+    if (response.key) {
+      details["API Key"] = response.key.key;
     }
     if (response.webhook) {
       details["Webhook"] = response.webhook.url;
@@ -133,7 +133,7 @@ export default class EnterpriseProvision extends AuthenticatedCommand {
 
     success("Workspace provisioned", details);
 
-    if (response.apiKey) {
+    if (response.key) {
       console.log();
       console.log(
         colors.warning("  Save the API key now — it won't be shown again."),
