@@ -9,7 +9,7 @@
 
 # @sendly/cli
 
-Official command-line interface for the [Sendly](https://sendly.live) SMS & MMS API.
+Official command-line interface for the [Sendly](https://sendly.live) SMS API.
 
 ## Installation
 
@@ -476,4 +476,44 @@ sendly credits balance --json | jq '.balance'
 
 Configuration is stored in:
 - **macOS/Linux**: `~/.sendly/config.json`
-- **Windows**: `%USERPROFILE%\.sendly
+- **Windows**: `%USERPROFILE%\.sendly\config.json`
+
+## Webhook Signature Verification
+
+When using `sendly webhooks listen`, verify signatures in your app:
+
+```javascript
+import crypto from 'crypto';
+
+function verifyWebhook(payload, signature, secret) {
+  const expectedSig = 'v1=' + crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSig)
+  );
+}
+```
+
+## Requirements
+
+- Node.js 18.0.0 or higher
+- A Sendly account ([sign up free](https://sendly.live))
+
+## Documentation
+
+- [CLI Documentation](https://sendly.live/docs/cli)
+- [API Reference](https://sendly.live/docs/api)
+- [Sendly Dashboard](https://sendly.live/dashboard)
+
+## Support
+
+- [GitHub Issues](https://github.com/SendlyHQ/sendly-cli/issues)
+- Email: support@sendly.live
+
+## License
+
+MIT

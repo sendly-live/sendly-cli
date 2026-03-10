@@ -10,10 +10,10 @@ import {
 } from "../../../lib/output.js";
 
 interface QuotaSettings {
-  dailyLimit: number | null;
-  monthlyLimit: number | null;
-  dailyUsed: number;
-  monthlyUsed: number;
+  dailyMessageQuota: number | null;
+  monthlyMessageQuota: number | null;
+  messagesThisDay: number;
+  messagesThisMonth: number;
 }
 
 export default class QuotaGet extends AuthenticatedCommand {
@@ -50,14 +50,14 @@ export default class QuotaGet extends AuthenticatedCommand {
     header("Workspace Quota");
 
     keyValue({
-      "Daily Limit": quota.dailyLimit !== null
-        ? quota.dailyLimit.toLocaleString()
+      "Daily Limit": quota.dailyMessageQuota !== null
+        ? quota.dailyMessageQuota.toLocaleString()
         : colors.dim("unlimited"),
-      "Daily Used": `${quota.dailyUsed.toLocaleString()}${quota.dailyLimit ? ` / ${quota.dailyLimit.toLocaleString()}` : ""}`,
-      "Monthly Limit": quota.monthlyLimit !== null
-        ? quota.monthlyLimit.toLocaleString()
+      "Daily Used": `${(quota.messagesThisDay || 0).toLocaleString()}${quota.dailyMessageQuota ? ` / ${quota.dailyMessageQuota.toLocaleString()}` : ""}`,
+      "Monthly Limit": quota.monthlyMessageQuota !== null
+        ? quota.monthlyMessageQuota.toLocaleString()
         : colors.dim("unlimited"),
-      "Monthly Used": `${quota.monthlyUsed.toLocaleString()}${quota.monthlyLimit ? ` / ${quota.monthlyLimit.toLocaleString()}` : ""}`,
+      "Monthly Used": `${(quota.messagesThisMonth || 0).toLocaleString()}${quota.monthlyMessageQuota ? ` / ${quota.monthlyMessageQuota.toLocaleString()}` : ""}`,
     });
   }
 }

@@ -4,10 +4,10 @@ import { apiClient } from "../../../lib/api-client.js";
 import { success, json, colors, isJsonMode } from "../../../lib/output.js";
 
 interface QuotaSettings {
-  dailyLimit: number | null;
-  monthlyLimit: number | null;
-  dailyUsed: number;
-  monthlyUsed: number;
+  dailyMessageQuota: number | null;
+  monthlyMessageQuota: number | null;
+  messagesThisMonth: number;
+  messagesThisDay: number;
 }
 
 export default class QuotaSet extends AuthenticatedCommand {
@@ -47,17 +47,17 @@ export default class QuotaSet extends AuthenticatedCommand {
     const body: Record<string, unknown> = {};
 
     if (flags.daily !== undefined) {
-      body.dailyLimit =
+      body.dailyMessageQuota =
         flags.daily === "unlimited" ? null : parseInt(flags.daily, 10);
-      if (flags.daily !== "unlimited" && isNaN(body.dailyLimit as number)) {
+      if (flags.daily !== "unlimited" && isNaN(body.dailyMessageQuota as number)) {
         this.error('--daily must be a number or "unlimited".');
       }
     }
 
     if (flags.monthly !== undefined) {
-      body.monthlyLimit =
+      body.monthlyMessageQuota =
         flags.monthly === "unlimited" ? null : parseInt(flags.monthly, 10);
-      if (flags.monthly !== "unlimited" && isNaN(body.monthlyLimit as number)) {
+      if (flags.monthly !== "unlimited" && isNaN(body.monthlyMessageQuota as number)) {
         this.error('--monthly must be a number or "unlimited".');
       }
     }
@@ -76,15 +76,15 @@ export default class QuotaSet extends AuthenticatedCommand {
 
     if (flags.daily !== undefined) {
       details["Daily Limit"] =
-        quota.dailyLimit !== null
-          ? quota.dailyLimit.toLocaleString()
+        quota.dailyMessageQuota !== null
+          ? quota.dailyMessageQuota.toLocaleString()
           : colors.dim("unlimited");
     }
 
     if (flags.monthly !== undefined) {
       details["Monthly Limit"] =
-        quota.monthlyLimit !== null
-          ? quota.monthlyLimit.toLocaleString()
+        quota.monthlyMessageQuota !== null
+          ? quota.monthlyMessageQuota.toLocaleString()
           : colors.dim("unlimited");
     }
 
